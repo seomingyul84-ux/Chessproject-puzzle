@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Stockfish 체스 퍼즐</title>
+    
+    <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css"> 
+    <link rel="stylesheet" href="style.css?v=202510280900"> 
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="lib/chessboard-1.0.0.min.js"></script> 
+    <script src="lib/chess.min.js"></script>
+    
+</head>
+<body>
+    
+    <button class="home-button" onclick="alert('봇 게임 페이지 URL로 이동하도록 수정하세요.')">홈 버튼</button>
+
+    <div class="container">
+        <h1>오늘의 체스 퍼즐</h1>
+        
+        <div class="game-area">
+            <div id="myBoard" style="width: 600px"></div>
+            
+            <div class="right-panel">
+                
+                <div class="rating-box">
+                    <h3>퍼즐 정보</h3>
+                    <p>이 퍼즐의 레이팅: <span id="puzzleRating">--</span></p>
+                    <p>당신의 퍼즐 레이팅: <span id="userRating">--</span></p>
+                    <p id="status" class="current-status">퍼즐을 로딩 중입니다.</p>
+                </div>
+                
+                <div class="puzzle-description-box">
+                    <h3 id="controlBoxHeader">최선의 수를 찾아보세요.</h3>
+                    
+                    <div class="game-options">
+                        <button onclick="startNewGame()">새 퍼즐 시작</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="puzzle.js?v=202510280900"></script>
+</body>
+</html>
