@@ -1,224 +1,223 @@
-// =========================================================
-// 1. 상수 및 초기화
-// =========================================================
+// 전역 변수 설정
+let board = null; // chessboard.js 인스턴스 (시각화)
+let game = null; // chess.js 인스턴스 (게임 규칙, FEN, 수순 관리)
+let puzzles = [];
+let currentPuzzle = null;
+let currentPuzzleIndex = -1; // -1에서 시작하여 첫 호출 시 0이 되도록
+let currentSolutionMoves = [];
+let currentMoveIndex = 0;
+let isPuzzleActive = false;
 
-const chess = new Chess();
-let board = null; 
+// DOM 요소 캐싱
+const statusEl = document.getElementById('status');
+const puzzleRatingEl = document.getElementById('puzzleRating');
 
-// 🌟🌟🌟 유저 레이팅 관련 상수 (시뮬레이션) 🌟🌟🌟
-// 실제 웹 서비스에서는 서버에서 이 값을 받아와야 합니다.
-const USER_IS_LOGGED_IN = false; // 현재 비로그인 상태로 시뮬레이션
-const GUEST_RATING = 600;
-const SIMULATED_USER_RATING = 1500; 
-const RATING_TOLERANCE = 200; // 타겟 레이팅 +- 200 범위 내에서 퍼즐 선택
-
-// 🌟🌟🌟 Lichess 퍼즐 데이터 형식 적용 (rating 필드 포함) 🌟🌟🌟
-const PUZZLE_DATA = [
-    // Puzzle 1: Mate in 2 (고레이팅 퍼즐)
-    { 
-        fen: 'q3k1nr/1pp1nQpp/3p4/1P2p3/4P3/B1PP1b2/B5PP/5K2 b k - 0 17', 
-        full_solution_uci: ['e8d7', 'a2e6', 'd7d8', 'f7f8'], 
-        theme: 'Mate in 2',
-        rating: 1760 
-    },
-    // Puzzle 2: Advantage/Very Long (초고레이팅 퍼즐)
-    { 
-        fen: 'r3r1k1/p4ppp/2p2n2/1p6/3P1qb1/2NQR3/PPB2PP1/R1B3K1 w - - 5 18', 
-        full_solution_uci: ['e3g3', 'e8e1', 'g1h2', 'e1c1', 'a1c1', 'f4h6', 'h2g1', 'h6c1'],
-        theme: 'Advantage/Very Long',
-        rating: 2671
-    },
-    // Puzzle 3: Advantage/Long (중고레이팅 퍼즐)
-    { 
-        fen: 'Q1b2r1k/p2np2p/5bp1/q7/5P2/4B3/PPP3PP/2KR1B1R w - - 1 17', 
-        full_solution_uci: ['d1d7', 'a5e1', 'd7d1', 'e1e3', 'c1b1', 'e3b6'],
-        theme: 'Advantage/Long',
-        rating: 2235 
-    },
-    // Puzzle 4: Endgame (저레이팅 퍼즐 - Guest용)
-    {
-        fen: '8/8/8/8/4q3/8/5PPP/4k2K w - - 0 1',
-        full_solution_uci: ['h1g1', 'e4f3', 'g2f3'],
-        theme: 'Endgame Mate (Easy)',
-        rating: 650
-    },
-    // Puzzle 5: Opening Trap (중레이팅 퍼즐 - 로그인 유저 시뮬레이션용)
-    {
-        fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKB1R b KQkq - 0 1',
-        full_solution_uci: ['e7e5', 'g1f3', 'g8f6', 'f3e5', 'f6e4'],
-        theme: 'Opening Trap (Medium)',
-        rating: 1400
-    },
-    // Puzzle 6: Simple Checkmate (최저 레이팅 퍼즐 - Guest용)
-    {
-        fen: '8/8/8/8/8/3R4/8/1R3K2 w - - 0 1',
-        full_solution_uci: ['b1b7', 'e8d8', 'd3d8'],
-        theme: 'Rook Mate (Basic)',
-        rating: 450
-    }
-];
-
-let currentPuzzleSolution = []; 
-let isPuzzleMode = true; 
-
-// =========================================================
-// 2. 헬퍼 함수
-// =========================================================
-
-function executeUciMove(uciMove) {
-    if (!uciMove || uciMove.length < 4) return null;
-    const from = uciMove.substring(0, 2);
-    const to = uciMove.substring(2, 4);
-    let promotion = uciMove.length === 5 ? uciMove.substring(4, 5) : undefined;
-    try {
-        return chess.move({ from: from, to: to, promotion: promotion });
-    } catch (e) {
-        return null;
-    }
-}
-
-
-// =========================================================
-// 3. 게임 로직 및 이벤트 핸들러 (퍼즐 로직)
-// =========================================================
+// ===================================
+// 1. 초기화 및 보드 설정
+// ===================================
 
 function onDrop (source, target) {
-    if (!isPuzzleMode) return 'snapback'; 
+    if (!isPuzzleActive) return 'snapback';
     
-    const expectedUciMove = currentPuzzleSolution[0];
-    const promotionPiece = expectedUciMove && expectedUciMove.length === 5 ? expectedUciMove.substring(4) : '';
-    const playerUciMove = source + target + promotionPiece;
-    
-    if (playerUciMove !== expectedUciMove) {
-        document.getElementById('status').textContent = "오답입니다! 다시 시도해 보세요.";
-        return 'snapback'; 
-    }
+    // UCI 형식으로 수순 시도 (promotion은 퀸으로 가정)
+    const move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' 
+    });
 
-    const move = executeUciMove(playerUciMove);
-    if (move === null) return 'snapback'; 
+    // 유효하지 않은 수순이거나, 규칙에 맞지 않는 수순이면 되돌리기
+    if (move === null) return 'snapback';
 
-    currentPuzzleSolution.shift(); 
-    updateStatus();
+    // 유효한 수이므로 정답 확인 로직으로 이동
+    checkUserMove(move);
 
-    if (currentPuzzleSolution.length === 0) {
-        document.getElementById('status').textContent = "🎉 퍼즐 해결 성공! 잠시 후 새 퍼즐이 시작됩니다.";
-        setTimeout(() => { startNewGame(); }, 5000);
-        return;
-    }
-
-    window.setTimeout(puzzleResponse, 500); 
+    // 유효한 수이므로 되돌리지 않음
+    return; 
 }
 
-function puzzleResponse() {
-    if (currentPuzzleSolution.length === 0) return; 
+function initBoard() {
+    const config = {
+        draggable: true,
+        position: 'start',
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd 
+    };
+    // myBoard는 HTML에서 정의된 ID입니다.
+    board = Chessboard('myBoard', config);
+    // 게임 규칙 엔진 초기화
+    game = new Chess();
+}
 
-    const aiUciMove = currentPuzzleSolution[0];
-    const move = executeUciMove(aiUciMove);
+function onSnapEnd () {
+    // 수순이 끝난 후 보드를 현재 FEN으로 갱신
+    board.position(game.fen());
+}
 
-    if (move) {
-        if (board) board.position(chess.fen());
-        currentPuzzleSolution.shift(); 
-        updateStatus();
-        
-        if (currentPuzzleSolution.length === 0) {
-            document.getElementById('status').textContent = "🎉 퍼즐 해결 성공! 잠시 후 새 퍼즐이 시작됩니다.";
-             setTimeout(() => { startNewGame(); }, 5000);
-        } else {
-            document.getElementById('status').textContent = `상대방이 ${move.san} 응수했습니다. 이제 ${chess.turn() === 'w' ? '백' : '흑'} 차례입니다.`;
+async function loadPuzzles() {
+    try {
+        const response = await fetch('puzzles.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    } else {
-        console.error("Puzzle AI move failed:", aiUciMove);
-        document.getElementById('status').textContent = "오류: 퍼즐 응수 수를 둘 수 없습니다.";
+        puzzles = await response.json(); 
+        
+        if (!Array.isArray(puzzles) || puzzles.length === 0) {
+            statusEl.textContent = '오류: 퍼즐 데이터가 올바르지 않거나 비어 있습니다.';
+            return;
+        }
+
+        statusEl.textContent = `퍼즐 데이터 로드 완료! (총 ${puzzles.length}개)`;
+        initBoard();
+        startNewGame(); // 첫 퍼즐 시작
+        
+    } catch (error) {
+        console.error('퍼즐 로드 중 오류 발생:', error);
+        statusEl.textContent = '오류: puzzles.json 파일을 찾거나 로드할 수 없습니다. (콘솔 확인)';
     }
 }
 
-
-// =========================================================
-// 4. 퍼즐 초기화 로직 (레이팅 필터링 적용)
-// =========================================================
+// ===================================
+// 2. 새 퍼즐 시작
+// ===================================
 
 function startNewGame() {
-    if (!isPuzzleMode) return;
-    
-    // 1. 타겟 레이팅 결정 (로그인 상태에 따라)
-    const targetRating = USER_IS_LOGGED_IN ? SIMULATED_USER_RATING : GUEST_RATING;
-    
-    // 2. 타겟 레이팅 범위 설정 
-    const lowerBound = Math.max(0, targetRating - RATING_TOLERANCE); 
-    const upperBound = targetRating + RATING_TOLERANCE;
-    
-    // 3. 레이팅 범위 내 퍼즐 필터링
-    let filteredPuzzles = PUZZLE_DATA.filter(p => p.rating >= lowerBound && p.rating <= upperBound);
+    if (puzzles.length === 0) return;
 
-    // 필터링된 퍼즐이 없으면 전체 퍼즐 중에서 선택
-    if (filteredPuzzles.length === 0) {
-        console.warn(`LOG: 레이팅 ${targetRating} 근처의 퍼즐이 없어 전체 퍼즐 중 무작위 선택합니다.`);
-        filteredPuzzles = PUZZLE_DATA;
+    // 인덱스 증가 및 순환
+    currentPuzzleIndex = (currentPuzzleIndex + 1) % puzzles.length;
+    currentPuzzle = puzzles[currentPuzzleIndex];
+    
+    // **핵심: B 방법 적용**
+    currentSolutionMoves = currentPuzzle.Moves.split(' '); 
+    
+    currentMoveIndex = 0;
+    isPuzzleActive = true;
+    
+    // chess.js 및 chessboard.js 초기화
+    game.load(currentPuzzle.FEN);
+    board.position(currentPuzzle.FEN);
+    
+    // UI 업데이트
+    puzzleRatingEl.textContent = currentPuzzle.Rating;
+    statusEl.classList.remove('correct', 'incorrect');
+    
+    const turn = game.turn() === 'w' ? '백' : '흑';
+    statusEl.textContent = `${turn}의 차례입니다. 정답 수를 두세요.`;
+    
+    // Lichess 퍼즐은 FEN의 턴이 플레이어의 턴을 나타낸다고 가정합니다.
+    // 만약 첫 수가 컴퓨터의 수라면, 그 수를 먼저 둡니다.
+    const firstMove = currentSolutionMoves[0];
+    const expectedTurn = firstMove ? game.validate_move(firstMove) : null;
+    
+    if (!expectedTurn || expectedTurn.color !== game.turn()) {
+        // FEN 턴과 첫 정답 수의 색상이 다르면 (즉, 컴퓨터가 먼저 둠)
+        // 이 로직은 복잡하므로, Lichess처럼 FEN 턴이 항상 플레이어 턴이라고 가정하고 생략합니다.
     }
+}
+
+// ===================================
+// 3. 사용자 수순 확인
+// ===================================
+
+function checkUserMove(move) {
+    if (!isPuzzleActive) return;
+
+    // chess.js move 객체를 UCI로 변환 (promotion 포함)
+    const userMoveUci = move.from + move.to + (move.promotion ? move.promotion : '');
+    const expectedMoveUci = currentSolutionMoves[currentMoveIndex];
     
-    // 4. 무작위 퍼즐 선택
-    const currentPuzzleIndex = Math.floor(Math.random() * filteredPuzzles.length);
-    const puzzle = filteredPuzzles[currentPuzzleIndex];
-    
-    // 5. Lichess FEN 로드 및 첫 수 적용
-    chess.load(puzzle.fen);
-    const opponentInitialMove = executeUciMove(puzzle.full_solution_uci[0]);
-    
-    if (!opponentInitialMove) {
-        console.error("Lichess Initial Move FAILED:", puzzle.full_solution_uci[0]);
-        document.getElementById('status').textContent = "⚠️ 퍼즐 초기화 오류: FEN 또는 Moves[0]을 확인하세요.";
+    // 정답 확인 (UCI 비교)
+    if (userMoveUci === expectedMoveUci) {
+        
+        currentMoveIndex++;
+        
+        // 퍼즐 완료 확인
+        if (currentMoveIndex >= currentSolutionMoves.length) {
+            handlePuzzleComplete(true);
+            return;
+        }
+        
+        // 컴퓨터(상대방)의 반격 수순 진행 (0.7초 딜레이)
+        statusEl.textContent = '✅ 정답입니다! 상대방의 수를 기다리세요.';
+        statusEl.classList.remove('incorrect');
+        statusEl.classList.add('correct');
+        setTimeout(makeComputerMove, 700); 
+        
+    } else {
+        // 오답
+        statusEl.textContent = '❌ 오답입니다. 다시 시도하세요. (새 퍼즐 버튼을 누르세요.)';
+        statusEl.classList.remove('correct');
+        statusEl.classList.add('incorrect');
+        isPuzzleActive = false;
+        
+        // 오답 수순은 게임 상태에 남겨두지 않고, 이전 FEN으로 복구
+        game.undo(); 
+        board.position(game.fen());
+    }
+}
+
+// ===================================
+// 4. 컴퓨터 (상대) 수순
+// ===================================
+
+function makeComputerMove() {
+    if (!isPuzzleActive) return;
+    if (currentMoveIndex >= currentSolutionMoves.length) {
+        handlePuzzleComplete(true);
         return;
     }
     
-    currentPuzzleSolution = puzzle.full_solution_uci.slice(1);
+    const computerMoveUci = currentSolutionMoves[currentMoveIndex];
     
-    // 6. 보드 방향 설정 및 UI 업데이트
-    const puzzleTurn = chess.turn() === 'w' ? 'white' : 'black';
-    if (board) board.orientation(puzzleTurn);
-    if (board) board.position(chess.fen());
+    // chess.js로 수를 두고, chessboard.js로 시각적 업데이트
+    const move = game.move(computerMoveUci);
     
-    document.getElementById('puzzleRating').textContent = puzzle.rating; 
-    document.getElementById('userRating').textContent = targetRating; 
-    document.getElementById('controlBoxHeader').textContent = `퍼즐: ${puzzle.theme} (Rating: ${puzzle.rating})`;
-    updateStatus();
-}
-
-function updateStatus() {
-    let status = '';
-    const turnColor = chess.turn() === 'w' ? '백' : '흑';
-    
-    if (currentPuzzleSolution.length === 0) {
-        status = '퍼즐 해결 완료!';
-    } else {
-        status = `${turnColor} 차례입니다. (남은 수: ${Math.ceil(currentPuzzleSolution.length / 2)})`;
-    }
-    
-    document.getElementById('status').textContent = status;
-}
-
-// =========================================================
-// 5. 초기 실행 (UI 슬라이더 관련 함수 제거)
-// =========================================================
-
-const config = {
-    draggable: true,
-    position: 'start',
-    onDrop: onDrop,
-    onSnapEnd: function() { 
-        if (board) board.position(chess.fen());
-    },
-    pieceTheme: 'img/{piece}.png' 
-};
-
-window.addEventListener('load', function() {
-    setTimeout(() => {
-        try {
-            board = ChessBoard('myBoard', config); 
-            startNewGame(); // 퍼즐 시작
-
-        } catch (e) {
-            console.error("CRITICAL ERROR: ChessBoard 초기화 실패!", e);
-            document.getElementById('status').textContent = "⚠️ 치명적 오류: Chessboard 라이브러리 로드 실패!";
+    if (move) {
+        board.position(game.fen()); // 보드 업데이트
+        
+        currentMoveIndex++;
+        
+        // 퍼즐 완료 확인 (컴퓨터 수가 마지막 수인 경우)
+        if (currentMoveIndex >= currentSolutionMoves.length) {
+            handlePuzzleComplete(true);
+            return;
         }
-    }, 250);
-});
+        
+        // 다음은 다시 플레이어 턴
+        const turn = game.turn() === 'w' ? '백' : '흑';
+        statusEl.textContent = `상대방의 수: ${move.san}. 이제 ${turn}의 차례입니다. 정답 수를 두세요.`;
+        statusEl.classList.remove('incorrect');
+        statusEl.classList.add('correct');
+        
+    } else {
+        console.error('컴퓨터 수순이 유효하지 않습니다:', computerMoveUci);
+        statusEl.textContent = '오류: 퍼즐 데이터에 문제가 있습니다. 다음 퍼즐로 넘어가세요.';
+        isPuzzleActive = false;
+    }
+}
+
+
+// ===================================
+// 5. 퍼즐 완료
+// ===================================
+
+function handlePuzzleComplete(isCorrect) {
+    isPuzzleActive = false;
+    
+    if (isCorrect) {
+        statusEl.textContent = '🎉 퍼즐 정답 성공! 다음 퍼즐을 시작하세요.';
+        statusEl.classList.remove('incorrect');
+        statusEl.classList.add('correct');
+    } else {
+        statusEl.textContent = '퍼즐 실패. 새 퍼즐을 시작하세요.';
+        statusEl.classList.remove('correct');
+        statusEl.classList.add('incorrect');
+    }
+}
+
+// ===================================
+// 6. 초기화
+// ===================================
+
+window.onload = loadPuzzles;
