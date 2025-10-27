@@ -1,0 +1,136 @@
+/* style.css */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    background-color: #333;
+    margin: 20px 0;
+    color: #f0f0f0;
+}
+
+/* 홈 버튼 스타일 */
+.home-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10; 
+}
+
+.container {
+    background: #252422;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    max-width: 1200px; 
+    width: 90%; 
+    text-align: center;
+}
+
+h1 {
+    color: #f0f0f0;
+    margin-bottom: 25px;
+}
+
+.game-area {
+    display: flex;
+    justify-content: center; 
+    gap: 40px; 
+}
+
+#myBoard {
+    width: 600px; 
+    min-height: 600px; 
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+}
+
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    gap: 15px;
+}
+
+/* 레이팅 정보 박스 스타일 */
+.rating-box {
+    background-color: #3f3e3c;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    text-align: left;
+    color: #ccc;
+}
+
+.rating-box h3 {
+    margin-top: 0;
+    color: #f0f0f0;
+    font-size: 1.1em;
+    border-bottom: 1px solid #555;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.rating-box p {
+    margin: 5px 0;
+}
+
+.rating-box .current-status {
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    margin-top: 10px;
+    background-color: #1a2c3a;
+    color: #7abaff;
+}
+
+/* 퍼즐 설명 및 컨트롤 박스 스타일 */
+.puzzle-description-box {
+    background-color: #3f3e3c; 
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    text-align: left;
+    color: #ccc;
+    flex-grow: 1; 
+}
+.puzzle-description-box h3 {
+    margin-top: 0;
+    color: #f0f0f0;
+    font-size: 1.1em;
+    border-bottom: 1px solid #555;
+    padding-bottom: 8px;
+}
+
+/* 컨트롤 버튼 스타일 */
+.game-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid #555;
+    margin-top: 10px;
+}
+
+.game-options button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    box-sizing: border-box;
+    margin-top: 5px;
+    background-color: #007bff;
+    color: #f0f0f0;
+    cursor: pointer;
+}
