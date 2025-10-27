@@ -2,7 +2,7 @@ body {
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* 화면 상단에 가깝게 배치 */
+    align-items: flex-start;
     min-height: 100vh;
     background-color: #f4f4f9;
     padding: 20px;
@@ -15,72 +15,100 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     text-align: center;
-    width: 100%;
-    max-width: 450px;
+    max-width: 1050px; /* 보드 600px + 패널 */
+    margin-top: 50px;
 }
 
 h1 {
     color: #333;
-    margin-bottom: 10px;
-    font-size: 1.8em;
-}
-
-.puzzle-info {
-    font-size: 1.1em;
-    font-weight: bold;
-    color: #555;
-    margin-bottom: 15px;
-}
-
-#board {
-    margin: 0 auto 20px auto;
-}
-
-.message {
-    font-size: 1.2em;
-    min-height: 1.5em; /* 메시지 영역 확보 */
     margin-bottom: 20px;
-    font-weight: bold;
+    font-size: 2em;
 }
 
-.buttons button {
-    padding: 10px 20px;
+.home-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px 15px;
     font-size: 1em;
-    margin: 5px;
     border: none;
     border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
-#next-puzzle {
-    background-color: #4CAF50;
-    color: white;
-}
-
-#next-puzzle:hover {
+.home-button:hover {
     background-color: #45a049;
 }
 
-#show-solution {
-    background-color: #008CBA;
+.game-area {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+}
+
+#myBoard {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.right-panel {
+    width: 300px;
+    text-align: left;
+}
+
+.rating-box, .puzzle-description-box {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #eee;
+}
+
+.rating-box h3, .puzzle-description-box h3 {
+    margin-top: 0;
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+#status {
+    font-weight: bold;
+    margin-top: 15px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    color: #333;
+    min-height: 1.2em;
+}
+
+.game-options button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #007bff;
     color: white;
+    transition: background-color 0.3s;
+    margin-top: 10px;
 }
 
-#show-solution:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-}
-
-#show-solution:hover:enabled {
-    background-color: #007bb5;
+.game-options button:hover {
+    background-color: #0056b3;
 }
 
 /* 정답/오답 메시지 색상 */
 .correct {
-    color: #4CAF50;
+    background-color: #d4edda !important;
+    color: #155724 !important;
 }
 
 .incorrect {
-    color: #f44336;
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
 }
