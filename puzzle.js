@@ -11,6 +11,8 @@ let isPuzzleActive = false;
 // DOM 요소 캐싱
 const statusEl = document.getElementById('status');
 const puzzleRatingEl = document.getElementById('puzzleRating');
+// ***추가된 DOM 요소 (HTML에 ID: nextPuzzleBtn이 있어야 함)***
+const nextPuzzleBtn = document.getElementById('nextPuzzleBtn'); 
 
 // ===================================
 // 1. 초기화 및 보드 설정
@@ -41,8 +43,11 @@ function initBoard() {
         draggable: true,
         position: 'start',
         onDrop: onDrop,
-        onSnapEnd: onSnapEnd 
+        onSnapEnd: onSnapEnd,
+        // *** 수정: 이미지 로딩 경로를 img/ 폴더 바로 아래로 변경 ***
+        pieceTheme: 'img/{piece}.png' 
     };
+    
     // myBoard는 HTML에서 정의된 ID입니다.
     board = Chessboard('myBoard', config);
     // 게임 규칙 엔진 초기화
@@ -69,6 +74,12 @@ async function loadPuzzles() {
 
         statusEl.textContent = `퍼즐 데이터 로드 완료! (총 ${puzzles.length}개)`;
         initBoard();
+        
+        // *** 다음 퍼즐 버튼 이벤트 리스너 추가 ***
+        if (nextPuzzleBtn) {
+            nextPuzzleBtn.addEventListener('click', startNewGame);
+        }
+
         startNewGame(); // 첫 퍼즐 시작
         
     } catch (error) {
@@ -88,7 +99,7 @@ function startNewGame() {
     currentPuzzleIndex = (currentPuzzleIndex + 1) % puzzles.length;
     currentPuzzle = puzzles[currentPuzzleIndex];
     
-    // **핵심: B 방법 적용**
+    // **핵심: Moves 문자열을 배열로 분할**
     currentSolutionMoves = currentPuzzle.Moves.split(' '); 
     
     currentMoveIndex = 0;
@@ -105,15 +116,7 @@ function startNewGame() {
     const turn = game.turn() === 'w' ? '백' : '흑';
     statusEl.textContent = `${turn}의 차례입니다. 정답 수를 두세요.`;
     
-    // Lichess 퍼즐은 FEN의 턴이 플레이어의 턴을 나타낸다고 가정합니다.
-    // 만약 첫 수가 컴퓨터의 수라면, 그 수를 먼저 둡니다.
-    const firstMove = currentSolutionMoves[0];
-    const expectedTurn = firstMove ? game.validate_move(firstMove) : null;
-    
-    if (!expectedTurn || expectedTurn.color !== game.turn()) {
-        // FEN 턴과 첫 정답 수의 색상이 다르면 (즉, 컴퓨터가 먼저 둠)
-        // 이 로직은 복잡하므로, Lichess처럼 FEN 턴이 항상 플레이어 턴이라고 가정하고 생략합니다.
-    }
+    // Lichess 퍼즐은 FEN 턴이 플레이어 턴을 나타낸다고 가정하므로, 컴퓨터 선수는 없습니다.
 }
 
 // ===================================
@@ -132,7 +135,7 @@ function checkUserMove(move) {
         
         currentMoveIndex++;
         
-        // 퍼즐 완료 확인
+        // 퍼즐 완료 확인 (사용자 수가 마지막 수인 경우)
         if (currentMoveIndex >= currentSolutionMoves.length) {
             handlePuzzleComplete(true);
             return;
@@ -146,7 +149,7 @@ function checkUserMove(move) {
         
     } else {
         // 오답
-        statusEl.textContent = '❌ 오답입니다. 다시 시도하세요. (새 퍼즐 버튼을 누르세요.)';
+        statusEl.textContent = '❌ 오답입니다. 다시 시도하세요. (다음 퍼즐 버튼을 누르세요.)';
         statusEl.classList.remove('correct');
         statusEl.classList.add('incorrect');
         isPuzzleActive = false;
@@ -163,10 +166,6 @@ function checkUserMove(move) {
 
 function makeComputerMove() {
     if (!isPuzzleActive) return;
-    if (currentMoveIndex >= currentSolutionMoves.length) {
-        handlePuzzleComplete(true);
-        return;
-    }
     
     const computerMoveUci = currentSolutionMoves[currentMoveIndex];
     
@@ -180,7 +179,7 @@ function makeComputerMove() {
         
         // 퍼즐 완료 확인 (컴퓨터 수가 마지막 수인 경우)
         if (currentMoveIndex >= currentSolutionMoves.length) {
-            handlePuzzleComplete(true);
+            handlePuzzleComplete(true); // <--- 컴퓨터 수가 퍼즐 완료 수라면 정답 처리
             return;
         }
         
@@ -206,11 +205,13 @@ function handlePuzzleComplete(isCorrect) {
     isPuzzleActive = false;
     
     if (isCorrect) {
-        statusEl.textContent = '🎉 퍼즐 정답 성공! 다음 퍼즐을 시작하세요.';
+        // saveUserRating(currentPuzzle.Rating, true); // 계정 기능 제외
+        statusEl.textContent = '🎉 퍼즐 정답 성공! 다음 퍼즐 버튼을 누르세요.';
         statusEl.classList.remove('incorrect');
         statusEl.classList.add('correct');
     } else {
-        statusEl.textContent = '퍼즐 실패. 새 퍼즐을 시작하세요.';
+        // saveUserRating(currentPuzzle.Rating, false); // 계정 기능 제외
+        statusEl.textContent = '퍼즐 실패. 다음 퍼즐 버튼을 누르세요.';
         statusEl.classList.remove('correct');
         statusEl.classList.add('incorrect');
     }
