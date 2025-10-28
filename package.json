@@ -2,9 +2,9 @@
   "name": "chess-puzzle-server",
   "version": "1.0.0",
   "description": "Serve static chess puzzle files.",
-  "main": "server.js",  // 이 파일이 서버의 시작점임을 지정
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js" // 서버 실행 명령 지정
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2"
