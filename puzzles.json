@@ -4993,8 +4993,7 @@
     "FEN": "8/1r3pkp/1b4p1/2Rp4/7P/1qP3P1/1P2QP2/2B3K1 w - - 5 33",
     "Moves": "e2e5 f7f6 c1h6 g7h6 e5f4 h6g7",
     "Rating": 1644
-  }
-[
+  },
   {
     "FEN": "r2r2k1/2q1bpp1/3p1n1p/1ppN4/1P1BP3/P5Q1/4RPPP/R5K1 b - - 1 20",
     "Moves": "f6d5 g3g7",
