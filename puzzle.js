@@ -8,7 +8,7 @@ let currentSolutionMoves = [];
 let currentMoveIndex = 0;
 let isPuzzleActive = false;
 
-// ⭐ 초보자 모드 관련 변수 추가 ⭐
+// 초보자 모드 관련 변수
 let isBeginnerMode = false; 
 const BEGINNER_MAX_RATING = 500; 
 
@@ -16,7 +16,7 @@ const BEGINNER_MAX_RATING = 500;
 const statusEl = document.getElementById('status');
 const puzzleRatingEl = document.getElementById('puzzleRating');
 const nextPuzzleBtn = document.getElementById('nextPuzzleBtn'); 
-const beginnerModeBtn = document.getElementById('beginnerModeBtn'); // ⭐ 추가 ⭐
+const beginnerModeBtn = document.getElementById('beginnerModeBtn'); 
 
 // ===================================
 // 1. 초기화 및 보드 설정
@@ -25,13 +25,7 @@ const beginnerModeBtn = document.getElementById('beginnerModeBtn'); // ⭐ 추�
 function onDrop (source, target) {
     if (!isPuzzleActive) return 'snapback';
     
-    // UCI 형식으로 수순 시도 (promotion은 퀸으로 가정)
-    const move = game.move({
-        from: source,
-        to: target,
-        promotion: 'q' 
-    });
-
+    const move = game.move({ from: source, to: target, promotion: 'q' });
     if (move === null) return 'snapback';
 
     checkUserMove(move);
@@ -39,12 +33,23 @@ function onDrop (source, target) {
 }
 
 function initBoard() {
+    // 라이브러리 로드 여부 및 DOM 요소 존재 여부 확인으로 안정성 확보
+    if (typeof Chessboard === 'undefined') {
+        statusEl.textContent = '❌ 오류: chessboard.js가 로드되지 않았습니다. (index.html 경로 확인)';
+        return;
+    }
+    const boardElement = document.getElementById('myBoard');
+    if (!boardElement) {
+         statusEl.textContent = '❌ 오류: HTML에 myBoard ID를 가진 요소가 없습니다.';
+         return;
+    }
+
     const config = {
         draggable: true,
         position: 'start',
         onDrop: onDrop,
         onSnapEnd: onSnapEnd,
-        // ⭐ 수정: 이미지 경로를 img/ 폴더 바로 아래로 변경 ⭐
+        // ⭐ 수정: 이미지 경로를 'img' 폴더 바로 아래에서 찾도록 변경 ⭐
         pieceTheme: 'img/{piece}.png' 
     };
     
@@ -53,7 +58,7 @@ function initBoard() {
 }
 
 function onSnapEnd () {
-    board.position(game.fen());
+    if(board) board.position(game.fen());
 }
 
 // ===================================
@@ -62,14 +67,17 @@ function onSnapEnd () {
 
 async function loadPuzzles() {
     try {
-        const response = await fetch('puzzles.json');
+        const response = await fetch('puzzles.json'); 
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+             statusEl.textContent = `❌ 오류: puzzles.json 파일을 찾을 수 없습니다. (HTTP 상태: ${response.status}). 파일이 GitHub 루트에 있는지 확인하세요.`;
+             return;
         }
+        
         puzzles = await response.json(); 
         
         if (!Array.isArray(puzzles) || puzzles.length === 0) {
-            statusEl.textContent = '오류: 퍼즐 데이터가 올바르지 않거나 비어 있습니다.';
+            statusEl.textContent = '❌ 오류: puzzles.json 파일은 로드되었으나 데이터 형식이 올바르지 않거나 비어 있습니다.';
             return;
         }
 
@@ -77,29 +85,25 @@ async function loadPuzzles() {
         initBoard();
         
         // 버튼 이벤트 리스너 연결
-        if (nextPuzzleBtn) {
-            nextPuzzleBtn.addEventListener('click', startNewGame);
-        }
+        if (nextPuzzleBtn) nextPuzzleBtn.addEventListener('click', startNewGame);
         if (beginnerModeBtn) {
             beginnerModeBtn.addEventListener('click', toggleBeginnerMode);
-            updateBeginnerButtonUI(); // 버튼 초기 UI 설정
+            updateBeginnerButtonUI(); 
         }
 
-        startNewGame(); // 첫 퍼즐 시작
+        startNewGame(); 
         
     } catch (error) {
         console.error('퍼즐 로드 중 오류 발생:', error);
-        statusEl.textContent = '오류: puzzles.json 파일을 찾거나 로드할 수 없습니다. (콘솔 확인)';
+        statusEl.textContent = `❌ 오류: puzzles.json 파일을 로드하는 과정에서 예외가 발생했습니다. (Console 확인)`;
     }
 }
 
-// ⭐ 초보자 모드 토글 함수 ⭐
+// 초보자 모드 토글 함수
 function toggleBeginnerMode() {
     isBeginnerMode = !isBeginnerMode;
     updateBeginnerButtonUI();
-    
-    // 모드가 변경되면 다음 퍼즐을 찾기 시작
-    currentPuzzleIndex = -1; 
+    currentPuzzleIndex = -1; // 다음 탐색을 위해 초기화
     startNewGame();
 }
 
@@ -114,7 +118,7 @@ function updateBeginnerButtonUI() {
 }
 
 // ===================================
-// 3. 새 퍼즐 시작 (필터링 로직 추가)
+// 3. 새 퍼즐 시작 (필터링 로직 포함)
 // ===================================
 
 function startNewGame() {
@@ -124,14 +128,13 @@ function startNewGame() {
     let foundPuzzle = null;
     let attempts = 0; 
     
-    // ⭐ 필터링 로직: 조건에 맞는 다음 퍼즐을 찾을 때까지 배열 순회 ⭐
+    // 조건에 맞는 다음 퍼즐을 찾을 때까지 순회
     do {
         nextIndex = (nextIndex + 1) % puzzles.length;
         const puzzle = puzzles[nextIndex];
-        
         attempts++;
         
-        // 필터링 조건
+        // 필터링 조건 확인
         const isRatingLowEnough = isBeginnerMode ? (puzzle.Rating <= BEGINNER_MAX_RATING) : true;
         
         if (isRatingLowEnough) {
@@ -140,28 +143,28 @@ function startNewGame() {
             break;
         }
         
-        // 배열 전체를 순회했지만 적합한 퍼즐을 찾지 못했다면 중단
+        // 배열 전체를 순회했으나 적합한 퍼즐이 없다면 중단
         if (attempts >= puzzles.length) {
-            statusEl.textContent = `⚠️ 초보자 모드에 맞는 퍼즐 (${BEGINNER_MAX_RATING} 이하)이 더 이상 없습니다. 모드를 꺼보세요.`;
+            statusEl.textContent = `⚠️ 초보자 모드에 맞는 퍼즐 (${BEGINNER_MAX_RATING} 이하)이 더 이상 없습니다.`;
             isPuzzleActive = false;
             return;
         }
         
-    } while (attempts <= puzzles.length); // 배열 전체 순환 보장
+    } while (attempts <= puzzles.length); 
 
     if (!foundPuzzle) {
-        statusEl.textContent = '⚠️ 퍼즐을 찾을 수 없습니다.';
+        statusEl.textContent = '⚠️ 필터링 조건에 맞는 퍼즐을 찾을 수 없습니다.';
         return;
     }
 
     currentPuzzle = foundPuzzle;
-    
     currentSolutionMoves = currentPuzzle.Moves.split(' '); 
     currentMoveIndex = 0;
     isPuzzleActive = true;
     
-    game.load(currentPuzzle.FEN);
-    board.position(currentPuzzle.FEN);
+    // 보드 및 게임 초기화
+    if(game) game.load(currentPuzzle.FEN);
+    if(board) board.position(currentPuzzle.FEN);
     
     puzzleRatingEl.textContent = currentPuzzle.Rating;
     statusEl.classList.remove('correct', 'incorrect');
@@ -171,7 +174,7 @@ function startNewGame() {
 }
 
 // ===================================
-// 4. 사용자 수순 확인 (기존 로직 유지)
+// 4. 사용자 수순 확인
 // ===================================
 
 function checkUserMove(move) {
@@ -206,7 +209,7 @@ function checkUserMove(move) {
 }
 
 // ===================================
-// 5. 컴퓨터 (상대) 수순 (기존 로직 유지)
+// 5. 컴퓨터 (상대) 수순
 // ===================================
 
 function makeComputerMove() {
@@ -238,7 +241,7 @@ function makeComputerMove() {
 
 
 // ===================================
-// 6. 퍼즐 완료 (기존 로직 유지)
+// 6. 퍼즐 완료
 // ===================================
 
 function handlePuzzleComplete(isCorrect) {
