@@ -1,6 +1,6 @@
 // 전역 변수 설정
 let board = null; 
-let game = null; 
+let game = null; // chess.js 인스턴스
 let puzzles = [];
 let currentPuzzle = null;
 let currentPuzzleIndex = -1; 
@@ -33,9 +33,9 @@ function onDrop (source, target) {
 }
 
 function initBoard() {
-    // 라이브러리 로드 여부 및 DOM 요소 존재 여부 확인으로 안정성 확보
-    if (typeof Chessboard === 'undefined') {
-        statusEl.textContent = '❌ 오류: chessboard.js가 로드되지 않았습니다. (index.html 경로 확인)';
+    // 라이브러리 로드 여부 및 DOM 요소 존재 여부 확인
+    if (typeof Chessboard === 'undefined' || typeof Chess === 'undefined') {
+        statusEl.textContent = '❌ 오류: 체스 라이브러리 (Chessboard/Chess) 로드 실패. (index.html 경로 확인)';
         return;
     }
     const boardElement = document.getElementById('myBoard');
@@ -49,12 +49,12 @@ function initBoard() {
         position: 'start',
         onDrop: onDrop,
         onSnapEnd: onSnapEnd,
-        // ⭐ 수정: 이미지 경로를 'img' 폴더 바로 아래에서 찾도록 변경 ⭐
+        // ⭐ 이미지 경로: img/ 폴더 바로 아래 파일들을 참조 ⭐
         pieceTheme: 'img/{piece}.png' 
     };
     
     board = Chessboard('myBoard', config);
-    game = new Chess();
+    game = new Chess(); // 게임 엔진 초기화
 }
 
 function onSnapEnd () {
@@ -67,6 +67,7 @@ function onSnapEnd () {
 
 async function loadPuzzles() {
     try {
+        // puzzles.json이 루트에 있으므로 경로 유지
         const response = await fetch('puzzles.json'); 
         
         if (!response.ok) {
@@ -77,7 +78,7 @@ async function loadPuzzles() {
         puzzles = await response.json(); 
         
         if (!Array.isArray(puzzles) || puzzles.length === 0) {
-            statusEl.textContent = '❌ 오류: puzzles.json 파일은 로드되었으나 데이터 형식이 올바르지 않거나 비어 있습니다.';
+            statusEl.textContent = '❌ 오류: puzzles.json 데이터 형식이 올바르지 않거나 비어 있습니다.';
             return;
         }
 
@@ -103,7 +104,7 @@ async function loadPuzzles() {
 function toggleBeginnerMode() {
     isBeginnerMode = !isBeginnerMode;
     updateBeginnerButtonUI();
-    currentPuzzleIndex = -1; // 다음 탐색을 위해 초기화
+    currentPuzzleIndex = -1; 
     startNewGame();
 }
 
@@ -123,6 +124,11 @@ function updateBeginnerButtonUI() {
 
 function startNewGame() {
     if (puzzles.length === 0) return;
+    // ⭐ 추가: game 객체 초기화 여부 확인 (TypeError 방지) ⭐
+    if (!game) {
+        statusEl.textContent = '❌ 오류: 게임 엔진이 초기화되지 않아 퍼즐을 시작할 수 없습니다. (라이브러리 로드 실패)';
+        return;
+    }
 
     let nextIndex = currentPuzzleIndex;
     let foundPuzzle = null;
@@ -134,7 +140,6 @@ function startNewGame() {
         const puzzle = puzzles[nextIndex];
         attempts++;
         
-        // 필터링 조건 확인
         const isRatingLowEnough = isBeginnerMode ? (puzzle.Rating <= BEGINNER_MAX_RATING) : true;
         
         if (isRatingLowEnough) {
@@ -143,7 +148,6 @@ function startNewGame() {
             break;
         }
         
-        // 배열 전체를 순회했으나 적합한 퍼즐이 없다면 중단
         if (attempts >= puzzles.length) {
             statusEl.textContent = `⚠️ 초보자 모드에 맞는 퍼즐 (${BEGINNER_MAX_RATING} 이하)이 더 이상 없습니다.`;
             isPuzzleActive = false;
@@ -173,9 +177,7 @@ function startNewGame() {
     statusEl.textContent = `${turn}의 차례입니다. 정답 수를 두세요.`;
 }
 
-// ===================================
-// 4. 사용자 수순 확인
-// ===================================
+// ... (4, 5, 6 섹션 - checkUserMove, makeComputerMove, handlePuzzleComplete 로직은 동일) ...
 
 function checkUserMove(move) {
     if (!isPuzzleActive) return;
@@ -208,10 +210,6 @@ function checkUserMove(move) {
     }
 }
 
-// ===================================
-// 5. 컴퓨터 (상대) 수순
-// ===================================
-
 function makeComputerMove() {
     if (!isPuzzleActive) return;
     
@@ -239,11 +237,6 @@ function makeComputerMove() {
     }
 }
 
-
-// ===================================
-// 6. 퍼즐 완료
-// ===================================
-
 function handlePuzzleComplete(isCorrect) {
     isPuzzleActive = false;
     
@@ -258,8 +251,9 @@ function handlePuzzleComplete(isCorrect) {
     }
 }
 
+
 // ===================================
 // 7. 초기화
 // ===================================
 
-window.onload = loadPuzzles;
+window.onload = loadPuzzles;w.onload = loadPuzzles;
